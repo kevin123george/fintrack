@@ -3,6 +3,8 @@ package com.astra.fintrack.services;
 import com.astra.fintrack.dtos.PortfolioStats;
 import com.astra.fintrack.dtos.StockRequest;
 import com.astra.fintrack.model.StockHolding;
+import com.astra.fintrack.model.StockHoldingHistory;
+import com.astra.fintrack.repos.StockHoldingHistoryRepository;
 import com.astra.fintrack.repos.StockRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -20,14 +23,17 @@ import java.util.stream.Collectors;
 @Service
 public class StockService {
 
-    private final StockRepository repo;
+    private final StockRepository stockRepository;
 
-    public StockService(StockRepository repo) {
-        this.repo = repo;
+    private final StockHoldingHistoryRepository stockHoldingHistoryRepository;
+
+    public StockService(StockRepository repo, StockHoldingHistoryRepository historyRepository) {
+        this.stockRepository = repo;
+        this.stockHoldingHistoryRepository = historyRepository;
     }
 
     public List<StockHolding> getAllStocks() {
-        return repo.findAll();
+        return stockRepository.findAll();
     }
 
     public StockHolding addStock(StockRequest req) {
@@ -37,22 +43,22 @@ public class StockService {
         stock.setBuyPrice(req.buyPrice);
         stock.setBuyDate(req.buyDate);
         stock.setCurrentPrice(req.currentPrice);
-        return repo.save(stock);
+        return stockRepository.save(stock);
     }
 
     public StockHolding updatePrice(Long id, double newPrice) {
-        StockHolding stock = repo.findById(id)
+        StockHolding stock = stockRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Stock not found"));
         stock.setCurrentPrice(newPrice);
-        return repo.save(stock);
+        return stockRepository.save(stock);
     }
 
     public void deleteStock(Long id) {
-        repo.deleteById(id);
+        stockRepository.deleteById(id);
     }
 
     public PortfolioStats getPortfolioStats() {
-        List<StockHolding> holdings = repo.findAll();
+        List<StockHolding> holdings = stockRepository.findAll();
         double invested = 0;
         double current = 0;
 
@@ -65,14 +71,14 @@ public class StockService {
     }
 
     public Set<String> HoldingTickers(){
-        return repo.findAll().stream().map(StockHolding::getSymbol).collect(Collectors.toSet());
+        return stockRepository.findAll().stream().map(StockHolding::getSymbol).collect(Collectors.toSet());
     }
 
     public void updateHoldingCurrentPrice(){
         // TODO update this when we have more tickers
 
         HashMap<String , Double> tickerPriceMap = new HashMap<>();
-        Set<String> symbols = repo.findAll().stream().map(StockHolding::getSymbol).collect(Collectors.toSet());
+        Set<String> symbols = stockRepository.findAll().stream().map(StockHolding::getSymbol).collect(Collectors.toSet());
 
 
 
@@ -102,13 +108,35 @@ public class StockService {
         }
 
 
-        List<StockHolding> allHoldings = repo.findAll().stream().filter(stockHolding -> tickerPriceMap.containsKey(stockHolding.getSymbol())).toList();
+        List<StockHolding> allHoldings = stockRepository.findAll().stream().filter(stockHolding -> tickerPriceMap.containsKey(stockHolding.getSymbol())).toList();
 
         allHoldings.forEach(stockHolding -> {
             stockHolding.setCurrentPrice(tickerPriceMap.getOrDefault(stockHolding.getSymbol(), stockHolding.getCurrentPrice()));
+
+            if (stockHolding.getCurrentPrice() != tickerPriceMap.getOrDefault(stockHolding.getSymbol(), stockHolding.getCurrentPrice())) {
+                // Save history
+                System.out.printf("Updating %s to %.2f EUR%n", stockHolding.getSymbol(), stockHolding.getCurrentPrice());
+                updateStockHolding(stockHolding);
+            }
         });
 
-        repo.saveAll(allHoldings);
+        stockRepository.saveAll(allHoldings);
 
+    }
+
+
+    private void updateStockHolding(StockHolding holding) {
+        // Save history
+        StockHoldingHistory history = new StockHoldingHistory();
+        history.setStockHoldingId(holding.getId());
+        history.setSymbol(holding.getSymbol());
+        history.setQuantity(holding.getQuantity());
+        history.setBuyPrice(holding.getBuyPrice());
+        history.setBuyDate(holding.getBuyDate());
+        history.setCurrentPrice(holding.getCurrentPrice());
+        history.setUpdatedAt(LocalDateTime.now());
+        stockHoldingHistoryRepository.save(history);
+
+        // Update holding...
     }
 }

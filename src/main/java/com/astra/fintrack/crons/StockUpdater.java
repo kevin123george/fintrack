@@ -7,16 +7,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class StockUpdater {
 
-    private final PolygonStockService polygonStockService;
-
     private final StockService stockService;
-    public StockUpdater(PolygonStockService service, StockService stockService) {
-        this.polygonStockService = service;
+    public StockUpdater(StockService stockService) {
         this.stockService = stockService;
     }
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 60000)
     public void updateStock() {
             stockService.updateHoldingCurrentPrice();
     }
 }
+
+
+//watch list -- nike salando apple benz bmw adiddas amundi

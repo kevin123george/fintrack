@@ -9,11 +9,22 @@ from colorama import Fore, Style
 
 STATS_URL = "http://localhost:8080/stocks/stats"
 HOLDINGS_URL = "http://localhost:8080/stocks"
+WATCHLIST_URL = "http://localhost:8080/stocks-watch"
+
 
 console = Console()
 
 def clear_console():
     os.system("cls" if os.name == "nt" else "clear")
+
+def fetch_watchlist():
+    try:
+        res = requests.get(WATCHLIST_URL)
+        res.raise_for_status()
+        return res.json()
+    except requests.RequestException as e:
+        print(Fore.RED + f"❌ Failed to fetch watchlist: {e}" + Style.RESET_ALL)
+        return []
 
 def fetch_stats():
     try:
@@ -23,6 +34,27 @@ def fetch_stats():
     except requests.RequestException as e:
         print(Fore.RED + f"❌ Failed to fetch stats: {e}" + Style.RESET_ALL)
         return None
+
+def display_watchlist(watchlist, show_emoji=True):
+    table = Table(title="👀 Watchlist" if show_emoji else "Watchlist", box=box.SIMPLE)
+
+    table.add_column("Symbol", style="bold yellow")
+    table.add_column("Initial (€)", justify="right")
+    table.add_column("Current (€)", justify="right")
+    table.add_column("Δ (€)", justify="right")
+
+    for stock in watchlist:
+        delta = stock["currentPrice"] - stock["initialPrice"]
+        delta_color = "green" if delta >= 0 else "red"
+        table.add_row(
+            stock["symbol"],
+            f"{stock['initialPrice']:.2f}",
+            f"{stock['currentPrice']:.2f}",
+            f"[{delta_color}]{delta:+.2f}[/{delta_color}]"
+        )
+
+    console.print(table)
+
 
 def fetch_holdings():
     try:
@@ -99,12 +131,16 @@ def main():
             clear_console()
             stats = fetch_stats()
             holdings = fetch_holdings()
+            watchlist = fetch_watchlist()
 
             if stats:
                 display_stats(stats, show_emoji=not args.no_emoji)
             if holdings:
                 display_holdings(holdings, show_emoji=not args.no_emoji)
                 display_profit_chart(holdings)
+            if watchlist:
+                display_watchlist(watchlist, show_emoji=not args.no_emoji)
+
             time.sleep(args.interval)
     except KeyboardInterrupt:
         print(Fore.CYAN + "\n👋 Exiting FinTrack CLI. Goodbye!" + Style.RESET_ALL)

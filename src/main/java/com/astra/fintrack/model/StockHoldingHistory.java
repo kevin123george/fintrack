@@ -17,7 +17,7 @@ public class StockHoldingHistory {
 
     private Long stockHoldingId;
     private String symbol;
-    private int quantity;
+    private double quantity;
     private double buyPrice;
     private LocalDate buyDate;
     private double currentPrice;

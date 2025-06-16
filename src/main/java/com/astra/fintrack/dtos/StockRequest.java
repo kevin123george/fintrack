@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public class StockRequest {
     public String symbol;
-    public int quantity;
+    public double quantity;
     public double buyPrice;
     public LocalDate buyDate;
     public double currentPrice;

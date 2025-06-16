@@ -5,13 +5,14 @@ from rich.prompt import Prompt
 from rich import print
 
 BASE_URL = "http://localhost:8080/stocks"
+WATCHLIST_URL = "http://localhost:8080/stocks-watch"
 
 console = Console()
 
 def add_stock():
     console.print("[bold green]📥 Add New Stock[/bold green]")
     symbol = Prompt.ask("Stock symbol (e.g., AAPL)")
-    quantity = int(Prompt.ask("Quantity"))
+    quantity = Prompt.ask("Quantity")
     buy_price = float(Prompt.ask("Buy price (€)"))
     buy_date = Prompt.ask("Buy date [yyyy-mm-dd]")
     current_price = float(Prompt.ask("Current price (€)"))
@@ -44,10 +45,30 @@ def update_stock_price():
     except requests.RequestException as e:
         print(f"[red]❌ Failed to update stock:[/red] {e}")
 
+def add_watch_stock():
+    console.print("[bold blue]🔍 Add Stock to Watchlist[/bold blue]")
+    symbol = Prompt.ask("Stock symbol (e.g., TSLA)")
+    initial_price = float(Prompt.ask("Initial price (€)"))
+    current_price = float(Prompt.ask("Current price (€)"))
+
+    payload = {
+        "symbol": symbol,
+        "initialPrice": initial_price,
+        "currentPrice": current_price
+    }
+
+    try:
+        res = requests.post(WATCHLIST_URL, json=payload)
+        res.raise_for_status()
+        print("[green]✅ Stock added to watchlist![/green]")
+    except requests.RequestException as e:
+        print(f"[red]❌ Failed to add to watchlist:[/red] {e}")
+
 def main():
     parser = argparse.ArgumentParser(description="FinTrack Stock Actions CLI")
     parser.add_argument("--add", action="store_true", help="Add a new stock")
     parser.add_argument("--update", action="store_true", help="Update existing stock price")
+    parser.add_argument("--watch", action="store_true", help="Add stock to watchlist")
 
     args = parser.parse_args()
 
@@ -55,8 +76,10 @@ def main():
         add_stock()
     elif args.update:
         update_stock_price()
+    elif args.watch:
+        add_watch_stock()
     else:
-        console.print("[bold cyan]ℹ️ Use --add or --update[/bold cyan]")
+        console.print("[bold cyan]ℹ️ Use --add, --update, or --watch[/bold cyan]")
 
 if __name__ == "__main__":
     main()

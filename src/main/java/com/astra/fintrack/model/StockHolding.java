@@ -17,9 +17,9 @@ public class StockHolding {
     private Long id;
 
     private String symbol;          // e.g., AAPL, TSLA
-    private int quantity;
+    private double quantity;
     private double buyPrice;
-    private LocalDate buyDate;
+    private LocalDate buyDate = LocalDate.now(); // Default to today if not specified
     private double currentPrice;
 
     // Getters, setters, etc.

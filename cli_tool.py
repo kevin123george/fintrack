@@ -42,18 +42,25 @@ def display_watchlist(watchlist, show_emoji=True):
     table.add_column("Initial (€)", justify="right")
     table.add_column("Current (€)", justify="right")
     table.add_column("Δ (€)", justify="right")
+    table.add_column("Δ (%)", justify="right")
 
     for stock in watchlist:
-        delta = stock["currentPrice"] - stock["initialPrice"]
+        initial = stock["initialPrice"]
+        current = stock["currentPrice"]
+        delta = current - initial
+        percent_change = (delta / initial) * 100 if initial else 0
         delta_color = "green" if delta >= 0 else "red"
+
         table.add_row(
             stock["symbol"],
-            f"{stock['initialPrice']:.2f}",
-            f"{stock['currentPrice']:.2f}",
-            f"[{delta_color}]{delta:+.2f}[/{delta_color}]"
+            f"{initial:.2f}",
+            f"{current:.2f}",
+            f"[{delta_color}]{delta:+.2f}[/{delta_color}]",
+            f"[{delta_color}]{percent_change:+.2f}%[/{delta_color}]"
         )
 
     console.print(table)
+
 
 
 def fetch_holdings():
@@ -71,16 +78,19 @@ def display_stats(data, show_emoji=True):
     table.add_column("Metric", style="bold cyan")
     table.add_column("Value (€)", justify="right", style="bold green")
 
-    invested = f"{data['totalInvested']:.2f}"
-    value = f"{data['currentValue']:.2f}"
-    profit = f"{data['totalProfit']:.2f}"
-    profit_color = "green" if data['totalProfit'] >= 0 else "red"
+    invested = data['totalInvested']
+    value = data['currentValue']
+    profit = data['totalProfit']
+    profit_percent = (profit / invested * 100) if invested else 0
+    profit_color = "green" if profit >= 0 else "red"
 
-    table.add_row("💰 Total Invested" if show_emoji else "Total Invested", invested)
-    table.add_row("📈 Current Value" if show_emoji else "Current Value", value)
-    table.add_row("💹 Total Profit" if show_emoji else "Total Profit", f"[{profit_color}]{profit}[/{profit_color}]")
+    table.add_row("💰 Total Invested" if show_emoji else "Total Invested", f"{invested:.2f}")
+    table.add_row("📈 Current Value" if show_emoji else "Current Value", f"{value:.2f}")
+    table.add_row("💹 Total Profit" if show_emoji else "Total Profit", f"[{profit_color}]{profit:.2f}[/{profit_color}]")
+    table.add_row("📊 Total Return %" if show_emoji else "Total Return %", f"[{profit_color}]{profit_percent:+.2f}%[/{profit_color}]")
 
     console.print(table)
+
 
 def display_holdings(holdings, show_emoji=True):
     table = Table(title="📦 Current Holdings" if show_emoji else "Current Holdings", box=box.MINIMAL_DOUBLE_HEAD)
@@ -90,16 +100,25 @@ def display_holdings(holdings, show_emoji=True):
     table.add_column("Buy (€)", justify="right")
     table.add_column("Current (€)", justify="right")
     table.add_column("P/L (€)", justify="right")
+    table.add_column("P/L (%)", justify="right")
 
     for h in holdings:
-        pl = (h["currentPrice"] - h["buyPrice"]) * h["quantity"]
+        buy_price = h["buyPrice"]
+        current_price = h["currentPrice"]
+        quantity = h["quantity"]
+
+        pl = (current_price - buy_price) * quantity
+        pl_percent = ((current_price - buy_price) / buy_price * 100) if buy_price else 0
+
         pl_color = "green" if pl >= 0 else "red"
+
         table.add_row(
             h["symbol"],
-            str(h["quantity"]),
-            f"{h['buyPrice']:.2f}",
-            f"{h['currentPrice']:.2f}",
-            f"[{pl_color}]{pl:.2f}[/{pl_color}]"
+            str(quantity),
+            f"{buy_price:.2f}",
+            f"{current_price:.2f}",
+            f"[{pl_color}]{pl:.2f}[/{pl_color}]",
+            f"[{pl_color}]{pl_percent:+.2f}%[/{pl_color}]"
         )
 
     console.print(table)

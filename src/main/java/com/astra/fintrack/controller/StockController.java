@@ -26,7 +26,7 @@ public class StockController {
 
     @GetMapping
     public ResponseEntity<List<StockHolding>> getAllStocks() {
-        return ResponseEntity.ok(service.getAllStocks());
+        return ResponseEntity.ok(service.getAllStocks().stream().filter(i -> i.getSold() == false).toList());
     }
 
     @PutMapping("/{id}")

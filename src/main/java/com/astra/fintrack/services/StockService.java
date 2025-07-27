@@ -58,7 +58,7 @@ public class StockService {
     }
 
     public PortfolioStats getPortfolioStats() {
-        List<StockHolding> holdings = stockRepository.findAll();
+        List<StockHolding> holdings = stockRepository.findAll().stream().filter(i-> i.getSold() == false).toList();
         double invested = 0;
         double current = 0;
 
@@ -78,7 +78,10 @@ public class StockService {
         // TODO update this when we have more tickers
 
         HashMap<String , Double> tickerPriceMap = new HashMap<>();
-        Set<String> symbols = stockRepository.findAll().stream().map(StockHolding::getSymbol).collect(Collectors.toSet());
+        Set<String> symbols = stockRepository.findAll().stream().filter(stockHolding -> {
+            // Filter out holdings that are sold or have no symbol
+            return !stockHolding.getSold() && stockHolding.getSymbol() != null && !stockHolding.getSymbol().isEmpty();
+        }).map(StockHolding::getSymbol).collect(Collectors.toSet());
 
 
 
@@ -98,6 +101,8 @@ public class StockService {
                 if (response.statusCode() == 200) {
                     JsonNode json = mapper.readTree(response.body());
                     double price = json.get("price").asDouble();  // This is the price in EUR
+                    System.out.println(symbol);
+                    System.out.println(price);
                     tickerPriceMap.put(symbol, price);
                 } else {
                     System.err.println("Failed to fetch data for symbol: " + symbol);
